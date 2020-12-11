@@ -1,27 +1,33 @@
 //node modules
 const inquirer = require("inquirer");
 const fs = require("fs");
-const renderHtml = require("./lib/htmlRenderer");
+const path = require("path");
 //classes
 const Employee = require("./lib/Employee");
 const Engineer = require("./lib/Engineer");
 const Manager = require("./lib/Manager");
 const Intern = require("./lib/Intern");
 
-renderHtml(teamMembers);
+const OUTPUT_DIR = path.resolve(__dirname, "output");
+const outputPath = path.join(OUTPUT_DIR, "team.html");
+const render = require("./lib/htmlRenderer");
 
-const teamMembers = [];
 
-const startupQueue = () => {
+
+const employees = [];
+
+function nameCrew(){
     inquirer.prompt([{
         type: "input",
-        message: "Name & Assemble the crew",
+        message: "Name your crew",
         name: "teamName"
-    }]).then(function(data){
-        const teamName = data.teamName;
-        teamMembers.push(teamName);
-        addEmployee();
-    })
+    }
+]).then(function(data) {
+    const teamName = data.teamName;
+    const newT = new Employee(teamName);
+    employees.push(newT);
+    addManager();
+})
 }
 //Questions for user input/ team info
 function addManager() {
@@ -51,16 +57,16 @@ function addManager() {
     const id = data.id;
     const email = data.email;
     const office = data.officeNumber
-    const newMan = new Employee(name, id, email, office);
-    teamMembers.push(newMan);
-    moreTeam();
+    const newMan = new Manager(name, id, email, office);
+    employees.push(newMan);
+    addTeam();
 });
 }
-function moreTeam() {
+function addTeam() {
     inquirer.prompt([{
         type: "list",
         message: "Do you want to assemble more of the crew?",
-        choices: ["Yes, add an engineer", "Yes, add a manager", "Yes add an intern", "No, my crew has been assembled!"],
+        choices: ["Yes, add an engineer", "Yes, add a manager", "Yes, add an intern", "No, my crew has been assembled!"],
         name: "addMoreCrew"
     }]).then(function(data) {
         switch (data.addMoreCrew) {
@@ -74,7 +80,7 @@ function moreTeam() {
                 addIntern();
                 break;
             case "No, my crew has been assembled!":
-                finalizeTeam();
+                completeTeam();
                 break;
         }
     })
@@ -107,7 +113,47 @@ function addEngineer() {
         const email = data.email;
         const github = data.github;
         const newEng = new Engineer(name, id, email, github);
-        teamMembers.push(newEng);
-        moreTeam()
+        employees.push(newEng);
+        addTeam()
     })
 }
+function addIntern() {
+    inquirer.prompt([
+        {
+            type: "input",
+            message: "what is the name of this intern?",
+            name: "name"
+        },
+        {
+            type: "input",
+            message: "please provide the ID for this intern",
+            name: "id"
+        },
+        {
+            type: "input",
+            message: "Provide the email for this intern",
+            name: "email"
+        },
+        {
+            type: "input",
+            message: "What school did this intern attend",
+            name: "school"
+        }
+    ]).then(function(data) {
+        const name = data.name;
+        const id = data.id;
+        const email = data.email;
+        const school = data.school;
+        const newInt = new Intern(name, id, email, school);
+        employees.push(newInt)
+        addTeam()
+    })
+};
+function completeTeam() {
+    console.log("The crew has been assembled!")
+    if (!fs.existsSync(OUTPUT_DIR)) {
+        fs.mkdirSync(OUTPUT_DIR)
+    }
+    fs.writeFileSync(outputPath, render(employees), "utf-8");
+}
+nameCrew();
